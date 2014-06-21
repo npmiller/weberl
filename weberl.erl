@@ -22,7 +22,7 @@ handle_request(ClientSocket) ->
 	io:format(H#request.url),
 	Rs = weberl_routes:route(H),
 	gen_tcp:send(ClientSocket, [
-		"HTTP/1.1 ", integer_to_list(Rs#response.status_code), " OK\r\n",
+		"HTTP/1.1 ", weberl_status_code:get_message(Rs#response.status_code) ,"\r\n",
 		"Content-Type: text/html; charset=utf-8\r\n",
 		"\r\n",
 		Rs#response.content
