@@ -49,5 +49,6 @@ get_content_type(Ext) ->
 	case Ext of
 		".css" -> "text/css";
 		".html"-> "text/html";
-		".js"  -> "application/javascript"
+		".js"  -> "application/javascript";
+		_      -> "text/plain"
 	end.

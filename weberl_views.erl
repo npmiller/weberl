@@ -8,7 +8,7 @@ serve_files(BaseDir, FilePath) ->
 	case file:read_file(lists:concat([BaseDir, FilePath])) of
 		{ok, Content} -> 
 			#response{content=Content, content_type=weberl_utils:get_content_type(filename:extension(FilePath))};
-		{error, enoent} -> 
+		{error, _} -> 
 			#response{status_code=404}
 	end.
 
@@ -25,7 +25,7 @@ serve_md(BaseDir, FilePath) ->
 		                                          #response{content=[Top, renderMd(FileMd, FileHtml), Bottom]} 
 		                                  end;
 		{{ok, _MdInfo}, {error, enoent}} -> #response{content=[Top, renderMd(FileMd, FileHtml), Bottom]};
-		{{error, enoent}, {_,_}} -> #response{status_code=404}
+		{{error, _}, {_,_}} -> #response{status_code=404}
 	end.
 
 renderMd(File, Out) ->

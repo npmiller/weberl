@@ -5,7 +5,7 @@
 -include("weberl.hrl").
 
 start(Port) ->
-	{ok, Socket} = gen_tcp:listen(Port, [binary, {active, false}]),
+	{ok, Socket} = gen_tcp:listen(list_to_integer(lists:flatten(Port)), [binary, {active, false}]),
 	accept(Socket).
 	%gen_tcp:close(Socket).
 
