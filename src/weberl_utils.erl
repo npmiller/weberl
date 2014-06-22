@@ -1,5 +1,5 @@
 -module(weberl_utils).
--export([get_status_message/1, get_content_type/1]).
+-export([get_status_message/1, get_content_type/1, clean_crlf/1]).
 
 get_status_message(StatusCode) ->
 	case StatusCode of
@@ -52,3 +52,5 @@ get_content_type(Ext) ->
 		".js"  -> "application/javascript";
 		_      -> "text/plain"
 	end.
+
+clean_crlf(BitString) -> [Clean] = binary:split(BitString, <<"\r\n">>, [trim]), Clean.
