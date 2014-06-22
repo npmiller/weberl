@@ -1,7 +1,7 @@
--module(weberl_status_code).
--export([get_message/1]).
+-module(weberl_utils).
+-export([get_status_message/1, get_content_type/1]).
 
-get_message(StatusCode) ->
+get_status_message(StatusCode) ->
 	case StatusCode of
 		100 -> "100  Continue";
 		101 -> "101  Switching Protocols";
@@ -43,4 +43,11 @@ get_message(StatusCode) ->
 		503 -> "503  Service Unavailable";
 		504 -> "504  Gateway Time-out";
 		505 -> "505  HTTP Version not supported"
+	end.
+
+get_content_type(Ext) ->
+	case Ext of
+		".css" -> "text/css";
+		".html"-> "text/html";
+		".js"  -> "application/javascript"
 	end.

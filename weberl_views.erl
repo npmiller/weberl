@@ -6,8 +6,10 @@
 
 serve_files(BaseDir, FilePath) ->
 	case file:read_file(lists:concat([BaseDir, FilePath])) of
-		{ok, Content} -> #response{content=Content};
-		{error, enoent} -> #response{status_code=404}
+		{ok, Content} -> 
+			#response{content=Content, content_type=weberl_utils:get_content_type(filename:extension(FilePath))};
+		{error, enoent} -> 
+			#response{status_code=404}
 	end.
 
 serve_md(BaseDir, FilePath) ->
