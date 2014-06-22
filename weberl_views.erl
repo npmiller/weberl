@@ -22,13 +22,13 @@ serve_md(BaseDir, FilePath) ->
 		                                      MdInfo#file_info.mtime =< HtmlInfo#file_info.mtime -> 
 		                                          {ok, Content} = file:read_file(FileHtml), #response{content=[Top, Content, Bottom]};
 		                                      true -> 
-		                                          #response{content=[Top, renderMd(FileMd, FileHtml), Bottom]} 
+		                                          #response{content=[Top, render_md(FileMd, FileHtml), Bottom]}
 		                                  end;
-		{{ok, _MdInfo}, {error, enoent}} -> #response{content=[Top, renderMd(FileMd, FileHtml), Bottom]};
+		{{ok, _MdInfo}, {error, enoent}} -> #response{content=[Top, render_md(FileMd, FileHtml), Bottom]};
 		{{error, _}, {_,_}} -> #response{status_code=404}
 	end.
 
-renderMd(File, Out) ->
+render_md(File, Out) ->
 	filelib:ensure_dir(Out),
 	os:cmd(lists:flatten(["pandoc -o ", Out, " ", File])),
 	{ok, Content} = file:read_file(Out),
