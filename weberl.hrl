@@ -7,5 +7,5 @@
 
 -record(response, {
         status_code=200,
-        content
+        content=""
        }).

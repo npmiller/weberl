@@ -21,6 +21,7 @@ handle_request(ClientSocket) ->
 	list_to_request(L, H),
 	io:format(H#request.url),
 	Rs = weberl_routes:route(H),
+	io:format(Rs#response.content),
 	gen_tcp:send(ClientSocket, [
 		"HTTP/1.1 ", weberl_status_code:get_message(Rs#response.status_code) ,"\r\n",
 		"Content-Type: text/html; charset=utf-8\r\n",
@@ -47,13 +48,12 @@ receive_and_clean_request(ClientSocket, L) ->
 	end.
 
 list_to_request([], H) -> H;
-list_to_request(L, H) ->
-	[E|Tail] = L,
+list_to_request([E|Tail], H) ->
 	case E of
 		<<"GET ", Args/binary>>               -> [ Url, Version ] = binary:split(Args, <<" ">>), 
 		                                         list_to_request(Tail, H#request{url=Url, http_version=Version});
 		<<"User-Agent: ", UserAgent/binary>>  -> list_to_request(Tail, H#request{user_agent=UserAgent});
-		<<"Content-Length: ", Length/binary>> -> list_to_request(Tail, H#request{content_length=string:to_integer(binary:bin_to_list(Length))});
+		<<"Content-Length: ", Length/binary>> -> list_to_request(Tail, H#request{content_length=list_to_integer(binary_to_list(Length))});
 		_ -> io:format(E), list_to_request(Tail, H)
 	end.
 
