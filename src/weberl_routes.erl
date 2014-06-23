@@ -6,7 +6,7 @@
 route(Rq) ->
 	case Rq#request.url of
 		<<"/">> ->
-			#response{content="Coucou"};
+			weberl_views:serve_files("./blog", "/home.html");
 		<<"/static", Path/binary>> ->
 			weberl_views:serve_files("./static", bitstring_to_list(Path));
 		<<"/raw", Path/binary>> ->
