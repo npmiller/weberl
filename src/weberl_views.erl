@@ -4,8 +4,10 @@
 -include("weberl.hrl").
 -include_lib("kernel/include/file.hrl").
 
+-define(CACHE_SUFFIX, "-cache").
+
 serve_files(BaseDir, FilePath) ->
-	case file:read_file(lists:concat([BaseDir, FilePath])) of
+	case file:read_file([BaseDir, FilePath]) of
 		{ok, Content} -> 
 			#response{content=Content, content_type=weberl_utils:get_content_type(filename:extension(FilePath))};
 		{error, _} -> 
@@ -13,23 +15,30 @@ serve_files(BaseDir, FilePath) ->
 	end.
 
 serve_md(BaseDir, FilePath) ->
-	FileMd = lists:concat([BaseDir, FilePath, ".md"]),
-	FileHtml = lists:concat([BaseDir, "-cache", FilePath, ".html"]),
-	{ok, Template} = file:read_file(lists:concat([BaseDir, "/base.html"])),
-	[Top, Bottom] = binary:split(Template, <<"-content-">>),
-	case { file:read_file_info(FileMd), file:read_file_info(FileHtml)} of
-		{{ok, MdInfo}, {ok, HtmlInfo}} -> if 
-		                                      MdInfo#file_info.mtime =< HtmlInfo#file_info.mtime -> 
-		                                          {ok, Content} = file:read_file(FileHtml), #response{content=[Top, Content, Bottom]};
-		                                      true -> 
-		                                          #response{content=[Top, render_md(FileMd, FileHtml), Bottom]}
-		                                  end;
-		{{ok, _MdInfo}, {error, enoent}} -> #response{content=[Top, render_md(FileMd, FileHtml), Bottom]};
-		{{error, _}, {_,_}} -> #response{status_code=404}
+	case check_cache(BaseDir, FilePath) of
+		error  -> 
+			#response{status_code=404};
+		render ->
+			render_md([BaseDir, FilePath, ".md"], [BaseDir, ?CACHE_SUFFIX, FilePath, ".html"]),
+			#response{content=render_content_template([BaseDir, "/base.html"], [BaseDir, ?CACHE_SUFFIX, FilePath, ".html"])}; 
+		ok     -> 
+			#response{content=render_content_template([BaseDir, "/base.html"], [BaseDir, ?CACHE_SUFFIX, FilePath, ".html"])} 
 	end.
 
-render_md(File, Out) ->
-	filelib:ensure_dir(Out),
-	os:cmd(lists:flatten(["pandoc -o ", Out, " ", File])),
-	{ok, Content} = file:read_file(Out),
-	Content.
+render_md(MdPath, HtmlPath) ->
+	filelib:ensure_dir(HtmlPath),
+	os:cmd(["pandoc -o ", HtmlPath, " ", MdPath]).
+
+render_content_template(TemplatePath, ContentPath) ->
+	{ok, Template} = file:read_file(TemplatePath),
+	{ok, Content} = file:read_file(ContentPath),
+	[Top, Bottom] = binary:split(Template, <<"-content-">>),
+	[Top, Content, Bottom].
+
+check_cache(BaseDir, FilePath) ->
+	case {filelib:last_modified([BaseDir, FilePath, ".md"]), filelib:last_modified([BaseDir, ?CACHE_SUFFIX, FilePath, ".html"])} of
+		{0, _}            -> error;
+		{_, 0}            -> render;
+		{Md, Html} when Md =< Html -> ok;
+		{Md, Html} when Md > Html -> render
+	end.
