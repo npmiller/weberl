@@ -46,7 +46,7 @@ handle_info({tcp, ClientSocket, Str}, S = #state{headers=true}) ->
 	case weberl_utils:clean_crlf(Str) of
 		<<"GET ", Args/binary>>               -> 
 			[ Url, Version ] = binary:split(Args, <<" ">>),
-			{noreply, S#state{request=(S#state.request)#request{url=Url, http_version=Version, method=get}}};
+			{noreply, S#state{request=(S#state.request)#request{url=bitstring_to_list(Url), http_version=Version, method=get}}};
 
 		<<"User-Agent: ", UserAgent/binary>>  -> 
 			{noreply, S#state{request=(S#state.request)#request{user_agent=UserAgent}}};
