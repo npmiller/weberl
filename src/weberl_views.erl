@@ -6,6 +6,7 @@
 
 -define(CACHE_SUFFIX, "-cache").
 -define(BASE_TPL, "/base.html").
+-define(INDEX_TPL, "index.html").
 
 serve_dir(Dir, R) ->
 	case filelib:is_dir([Dir, R#request.url]) of
@@ -16,7 +17,8 @@ serve_dir(Dir, R) ->
 serve_index(R) ->
 	case file:list_dir(R#request.url) of
 		{ok, L} ->
-			#response{content=L};
+			{ok, Template} = file:read_file("index.html"),
+			#response{content=weberl_tpl:render_template(Template, [{'List', L}, {'Title', R#request.url}])};
 		{error, _} -> 
 			#response{status_code=404}
 	end.
@@ -35,20 +37,18 @@ serve_md(Dir, R) ->
 			serve_index(R#request{url=[Dir, R#request.url]});
 		render ->
 			render_md([Dir, R#request.url, ".md"], [Dir, ?CACHE_SUFFIX, R#request.url, ".html"]),
-			#response{content=render_content_template([Dir, ?BASE_TPL], [Dir, ?CACHE_SUFFIX, R#request.url, ".html"])};
+			{ok, Template} = file:read_file([Dir, ?BASE_TPL]),
+			{ok, Content} = file:read_file([Dir, ?CACHE_SUFFIX, R#request.url, ".html"]),
+			#response{content=weberl_tpl:render_template(Template, [{'Content', Content}, {'Title', R#request.url}])};
 		ok     -> 
-			#response{content=render_content_template([Dir, ?BASE_TPL], [Dir, ?CACHE_SUFFIX, R#request.url, ".html"])}
+			{ok, Template} = file:read_file([Dir, ?BASE_TPL]),
+			{ok, Content} = file:read_file([Dir, ?CACHE_SUFFIX, R#request.url, ".html"]),
+			#response{content=weberl_tpl:render_template(Template, [{'Content', Content}, {'Title', R#request.url}])}
 	end.
 
 render_md(MdPath, HtmlPath) ->
 	filelib:ensure_dir(HtmlPath),
 	os:cmd(["pandoc -o ", HtmlPath, " ", MdPath]).
-
-render_content_template(TemplatePath, ContentPath) ->
-	{ok, Template} = file:read_file(TemplatePath),
-	{ok, Content} = file:read_file(ContentPath),
-	[Top, Bottom] = binary:split(Template, <<"-content-">>),
-	[Top, Content, Bottom].
 
 check_cache(Dir, Path) ->
 	case {filelib:last_modified([Dir, Path, ".md"]), filelib:last_modified([Dir, ?CACHE_SUFFIX, Path, ".html"])} of

@@ -1,9 +1,11 @@
 -module(weberl_tpl).
 -export([render_template/2]).
 
+-define(MARK, <<"-$-">>).
+
 render_template(Template, Bindings) ->
 	Env = lists:foldl(fun(E, Env) -> add_to_env(Env, E) end, erl_eval:new_bindings(), Bindings),
-	Parts = binary:split(Template, <<"--code--">>, [global]),
+	Parts = binary:split(Template, ?MARK, [global]),
 	lists:foldl(fun(E, Tpl) -> generate_template(Env, Tpl, E) end, "", lists:zip(lists:seq(1,length(Parts)), Parts)).
 
 generate_template(Env, Tpl, {Index, Part}) ->
