@@ -34,7 +34,7 @@ serve_file(R) ->
 serve_md(Dir, R) ->
 	case check_cache(Dir, R#request.url) of
 		error  ->
-			serve_index(R#request{url=[Dir, R#request.url]});
+			serve_pretty_index(Dir, R);
 		render ->
 			render_md([Dir, R#request.url, ".md"], [Dir, ?CACHE_SUFFIX, R#request.url, ".html"]),
 			{ok, Template} = file:read_file([Dir, ?BASE_TPL]),
@@ -45,6 +45,25 @@ serve_md(Dir, R) ->
 			{ok, Content} = file:read_file([Dir, ?CACHE_SUFFIX, R#request.url, ".html"]),
 			#response{content=weberl_tpl:render_template(Template, [{'Content', Content}, {'Title', R#request.url}])}
 	end.
+
+serve_pretty_index(Dir, R) ->
+	case file:list_dir([Dir, R#request.url]) of
+		{ok, L} ->
+			{ok, Template} = file:read_file("index.html"),
+			#response{content=weberl_tpl:render_template(Template, [
+			                                                        {'List', build_entry_list(Dir, R, L)}, 
+			                                                        {'Title', R#request.url}
+			                                                       ])};
+		{error, _} -> 
+			#response{status_code=404}
+	end.
+
+build_entry_list(Dir, R, L) ->
+	F = lists:filter(fun(E) -> Ext = filename:extension(E), if Ext == ".md" -> true; true -> false end end, L),
+	lists:map(fun(E) -> 
+					  {ok, IoDevice} = file:open([Dir, R#request.url, E], [read]),
+					  {ok, Line} = file:read_line(IoDevice), {Line, [R#request.url, filename:rootname(E)]}
+			  end, F).
 
 render_md(MdPath, HtmlPath) ->
 	filelib:ensure_dir(HtmlPath),
