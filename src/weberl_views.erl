@@ -10,15 +10,16 @@
 
 serve_dir(Dir, R) ->
 	case filelib:is_dir([Dir, R#request.url]) of
-		true -> serve_index(R#request{url=[Dir, R#request.url]});
+		true -> serve_index(Dir, R#request{url=R#request.url});
 		false -> serve_file(R#request{url=[Dir, R#request.url]})
 	end.
 
-serve_index(R) ->
-	case file:list_dir(R#request.url) of
+serve_index(Dir, R) ->
+	case file:list_dir([Dir, R#request.url]) of
 		{ok, L} ->
 			{ok, Template} = file:read_file("index.html"),
-			#response{content=weberl_tpl:render_template(Template, [{'List', L}, {'Title', R#request.url}])};
+			Lt = lists:map(fun(E) -> {E, [R#request.url, filename:rootname(E)]} end, L),
+			#response{content=weberl_tpl:render_template(Template, [{'List', Lt}, {'Title', R#request.url}])};
 		{error, _} -> 
 			#response{status_code=404}
 	end.
@@ -47,23 +48,18 @@ serve_md(Dir, R) ->
 	end.
 
 serve_pretty_index(Dir, R) ->
-	case file:list_dir([Dir, R#request.url]) of
-		{ok, L} ->
-			{ok, Template} = file:read_file("index.html"),
-			#response{content=weberl_tpl:render_template(Template, [
-			                                                        {'List', build_entry_list(Dir, R, L)}, 
-			                                                        {'Title', R#request.url}
-			                                                       ])};
-		{error, _} -> 
-			#response{status_code=404}
-	end.
+	{ok, Template} = file:read_file("index.html"),
+	#response{content=weberl_tpl:render_template(Template, [
+	                                                        {'List', build_entry_list(Dir, filelib:wildcard([Dir, R#request.url, "**/*.md"]))},
+	                                                        {'Title', R#request.url}
+	                                                       ])}.
 
-build_entry_list(Dir, R, L) ->
-	F = lists:filter(fun(E) -> Ext = filename:extension(E), if Ext == ".md" -> true; true -> false end end, L),
+build_entry_list(Dir, L) ->
 	lists:map(fun(E) -> 
-					  {ok, IoDevice} = file:open([Dir, R#request.url, E], [read]),
-					  {ok, Line} = file:read_line(IoDevice), {Line, [R#request.url, filename:rootname(E)]}
-			  end, F).
+					  {ok, IoDevice} = file:open(E, [read]),
+					  Url = string:substr(filename:rootname(E), string:len(Dir) + 1),
+					  {ok, Line} = file:read_line(IoDevice), {Line, Url}
+			  end, L).
 
 render_md(MdPath, HtmlPath) ->
 	filelib:ensure_dir(HtmlPath),
